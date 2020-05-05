@@ -515,12 +515,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
+			//1.
+			//2.初始化监听器相关内容
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
+			//把 ApplicationListenerDetector 添加到容器里
 			prepareBeanFactory(beanFactory);
 
 			try {
@@ -528,6 +531,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
+				// 1. 执行 BeanDefinitionRegistryPostProcessor  的 postProcessBeanDefinitionRegistry 方法
+				//         其中 ConfigurationClassPostProcessor  扫描，解析 符合的类，且生成 beanDefinition 注册到 beanFactory 中
+				// 2.执行 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
+				//			其中 ConfigurationClassPostProcessor 代理相关  CGLIB-enhanced
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
@@ -537,18 +544,26 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				//初始化 applicationEventMulticaster = SimpleApplicationEventMulticaster
+				//用于 事件监听器的管理，事件的发布
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
 				onRefresh();
 
 				// Check for listener beans and register them.
+				//1.注册事件监听器
+				//  并没有把实际的bean 进行注册，此时bean 的实例还未生成 只是把 实现了ApplicationListener
+				// 的 bean 的 name 加入到 事件管理器 的 defaultRetriever.applicationListenerBeans 里
+				//2. 把 需要提前发布的事件 进行发布处理
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				//完成bean 的实例化 （依赖注入，代理，添加到事件监听管理器里。。。）
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				//4.发布一个容器刷新完成的时间到
 				finishRefresh();
 			}
 
@@ -665,6 +680,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
 		// Register early post-processor for detecting inner beans as ApplicationListeners.
+		//添加一个用于处理实现了 ApplicationListener 的监听器的 后置处理器
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found.

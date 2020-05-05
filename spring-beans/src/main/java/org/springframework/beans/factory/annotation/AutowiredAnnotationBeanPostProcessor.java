@@ -290,6 +290,14 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 					Constructor<?> defaultConstructor = null;
 					Constructor<?> primaryConstructor = BeanUtils.findPrimaryConstructor(beanClass);
 					int nonSyntheticConstructors = 0;
+
+					// 如果有默认构造方法（无参） 则 赋值给 defaultConstructor (除了 被@Autowired 注解过 )
+					// 如果有被 @Autowired （required = false）  注解了的 构造方法 则会加到入到 candidates 集合里
+					// 如果又被 @Autowired（required = true）注解的构造方法 则会加入到 candidates集合里 且  将此赋值给 requiredConstructor
+					// 可以有多个 @Autowired（required = false）注解的构造方法
+					// 有多个 @Autowired（required = false）注解的构造方法 再有 一个   @Autowired（required = true）注解的构造方法 则可能抛异常 （与构造方法的顺序有关）
+					// 不可有超过一个 @Autowired（required = true）注解的构造方法
+
 					for (Constructor<?> candidate : rawCandidates) {
 						if (!candidate.isSynthetic()) {
 							nonSyntheticConstructors++;
@@ -297,9 +305,11 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 						else if (primaryConstructor != null) {
 							continue;
 						}
+						//获取构造方法上加了 @Autowired 注解的注解属性值
 						AnnotationAttributes ann = findAutowiredAnnotation(candidate);
 						if (ann == null) {
 							Class<?> userClass = ClassUtils.getUserClass(beanClass);
+							//判断是否已经是一个 Cglib 的代理类
 							if (userClass != beanClass) {
 								try {
 									Constructor<?> superCtor =
@@ -318,6 +328,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 										". Found constructor with 'required' Autowired annotation already: " +
 										requiredConstructor);
 							}
+							// 获取出 ann 的属性值
 							boolean required = determineRequiredStatus(ann);
 							if (required) {
 								if (!candidates.isEmpty()) {
@@ -334,6 +345,8 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 							defaultConstructor = candidate;
 						}
 					}
+
+
 					if (!candidates.isEmpty()) {
 						// Add default constructor to list of optional constructors, as fallback.
 						if (requiredConstructor == null) {
@@ -350,6 +363,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 						candidateConstructors = candidates.toArray(new Constructor<?>[0]);
 					}
 					else if (rawCandidates.length == 1 && rawCandidates[0].getParameterCount() > 0) {
+						//只有一个有参构造 没有加 @Autowired 注解
 						candidateConstructors = new Constructor<?>[] {rawCandidates[0]};
 					}
 					else if (nonSyntheticConstructors == 2 && primaryConstructor != null &&
@@ -491,6 +505,9 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 	@Nullable
 	private AnnotationAttributes findAutowiredAnnotation(AccessibleObject ao) {
 		if (ao.getAnnotations().length > 0) {  // autowiring annotations have to be local
+			//autowiredAnnotationTypes  有 @Autowired 和 @Value 这两个注解
+			// 构造方法上不能加 @Value
+			// 判断有没有 加@Autowired 注解 如果有 则对应的 返回对应的注解的 值 （required ： true (false)）
 			for (Class<? extends Annotation> type : this.autowiredAnnotationTypes) {
 				AnnotationAttributes attributes = AnnotatedElementUtils.getMergedAnnotationAttributes(ao, type);
 				if (attributes != null) {

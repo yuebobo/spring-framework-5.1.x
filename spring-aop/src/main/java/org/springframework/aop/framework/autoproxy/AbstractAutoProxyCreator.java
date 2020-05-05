@@ -295,6 +295,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
+			//对于循环 ， 被调用过 暴露的工厂方法 执行过 getEarlyBeanReference() 方法
+			// 即 已经被代理过一次了,这里不需要做再次 代理
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}
@@ -326,6 +328,16 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 	/**
 	 * Wrap the given bean if necessary, i.e. if it is eligible for being proxied.
+	 *
+	 * 使用 jdk动态代理 还是 cglib 动态代理
+	 *  {@link org.springframework.context.annotation.EnableAspectJAutoProxy}
+	 *  注解如果 proxyTargetClass 属性配置为 true 则 全部都会使用 cglib 代理
+	 *  如果 proxyTargetClass 属性为 false
+	 *  	如果 bean 有实现了某个或者某几个接口 并且 接口里需要有方法（不能全是空接口） 则使用 jdk 动态代理
+	 *  	否则 都用 cglib 代理
+	 *
+	 *  如果使用 jdk动态代理 则需要 注意，在需要注入其他bean 时 使用接口 ，不要使用 实现类 否则会抛出异常
+	 *
 	 * @param bean the raw bean instance
 	 * @param beanName the name of the bean
 	 * @param cacheKey the cache key for metadata access
