@@ -90,6 +90,10 @@ final class PostProcessorRegistrationDelegate {
 					processedBeans.add(ppName);
 				}
 			}
+			/**
+			 * currentRegistryProcessors 里有
+			 * {@link org.springframework.context.annotation.ConfigurationClassPostProcessor}
+			 */
 			sortPostProcessors(currentRegistryProcessors, beanFactory);
 			registryProcessors.addAll(currentRegistryProcessors);
 			invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);

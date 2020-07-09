@@ -218,6 +218,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	 */
 	@Override
 	public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+
+		//判断是否已经处理过 ，每个处理过旧抛异常
 		int registryId = System.identityHashCode(registry);
 		if (this.registriesPostProcessed.contains(registryId)) {
 			throw new IllegalStateException(
@@ -264,12 +266,23 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
 		for (String beanName : candidateNames) {
 			BeanDefinition beanDef = registry.getBeanDefinition(beanName);
+
+			//如果已经被处理过了，则会  xxx.configurationClass 会设置属性
 			if (ConfigurationClassUtils.isFullConfigurationClass(beanDef) ||
 					ConfigurationClassUtils.isLiteConfigurationClass(beanDef)) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Bean definition has already been processed as a configuration class: " + beanDef);
 				}
 			}
+
+			/**
+			 * 	判断 bd对应的类是否加有注解
+			 * 	1. @Configuration 注解 ,
+			 * 	设置属性 xxx.configurationClass ：full
+			 *
+			 * 	2.@Component(@Service @Controller)  @ComponentScan @Import @ImportResource  方法上有 @Bean注解
+			 * 	设置属性 xxx.configurationClass： lite
+			 */
 			else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
 				configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
 			}
@@ -288,6 +301,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		});
 
 		// Detect any custom bean name generation strategy supplied through the enclosing application context
+		//DefaultListableBeanFactory 是 SingletonBeanRegistry的子类
 		SingletonBeanRegistry sbr = null;
 		if (registry instanceof SingletonBeanRegistry) {
 			sbr = (SingletonBeanRegistry) registry;
@@ -304,17 +318,43 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			this.environment = new StandardEnvironment();
 		}
 
+
+		/**
+		 * 创建解析器
+		 */
 		// Parse each @Configuration class
 		ConfigurationClassParser parser = new ConfigurationClassParser(
 				this.metadataReaderFactory, this.problemReporter, this.environment,
 				this.resourceLoader, this.componentScanBeanNameGenerator, registry);
 
+		// 到这里的 candidates 对应的 bd 对应的 Class 都是加了
+		//@Configuration
+		//@Component(@Service @Controller)  @ComponentScan @Import @ImportResource  方法上有 @Bean注解 的 Class
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+			/**
+			 *	解析 解析过的类会存在  {@link ConfigurationClassParser#configurationClasses} 里
+			 *
+			 * 一.
+			 *  通过 @ComponentScan @ComponentScans 直接扫描得到的结果 转成BeanDefinition 且注册到 BeanFactory 中
+			 *
+			 * 二.
+			 * 		1.通过 @Import 导入的
+			 * 		1.符合规则的内部类 (isFullConfigurationCandidate || isLiteConfigurationCandidate)
+			 *     没有注册到 BeanFactory 而是 存到 parser.configurationClasses 属性里
+			 *
+			 * 三.加了 @Bean 的则把信息存到 对应的类中
+			 *
+			 *
+			 * 二 和 三 都是通过 后边的 this.reader.loadBeanDefinitions（） 方法
+			 * 注册到 BeanFactory 中
+			 */
 			parser.parse(candidates);
-			parser.validate();
 
+			//校验
+			parser.validate();
+			//
 			Set<ConfigurationClass> configClasses = new LinkedHashSet<>(parser.getConfigurationClasses());
 			configClasses.removeAll(alreadyParsed);
 
@@ -324,7 +364,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
+
+			//加载解析出来的结果 转成 beanDefinition 注册到 BeanFactory
 			this.reader.loadBeanDefinitions(configClasses);
+
 			alreadyParsed.addAll(configClasses);
 
 			candidates.clear();

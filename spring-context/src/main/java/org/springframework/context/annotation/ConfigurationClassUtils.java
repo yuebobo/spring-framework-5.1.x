@@ -86,6 +86,11 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
+
+		/**
+		 * 通过手动 register 的 Class 都会转换为 AnnotatedBeanDefinition
+		 * spring 容器初始化添加的 bd 为  RootBeanDefinition
+		 */
 		AnnotationMetadata metadata;
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
@@ -112,9 +117,20 @@ abstract class ConfigurationClassUtils {
 			}
 		}
 
+		//是否加了 @Configuration 注解 ,设置属性 为 ：full
 		if (isFullConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
+
+		//是否加了
+		// @Component(@Service @Controller @Repository)
+		// @ComponentScan
+		// @Import
+		// @ImportResource
+		//注解
+
+		//是否方法上有 @Bean主机
+		//设置属性为 ： lite
 		else if (isLiteConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
