@@ -129,6 +129,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 	/** Whether to automatically try to resolve circular references between beans. */
+	/** 是否尝试去处理循环依赖 */
 	private boolean allowCircularReferences = true;
 
 	/**
@@ -501,7 +502,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		try {
 			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
-			// 对于不需要做代理的类提前进行排除 {1.已经做过代理的，2.不能被代理的（Aspect 等相关的类 ）}
+			// ！！！ 对于不需要做代理的类提前进行排除 {1.已经做过代理的，2.不能被代理的（Aspect 等相关的类 ）}
+			//
+			// BeanPostProcess 后置处理器调用
+			// 			InstantiationAwareBeanPostProcessor : postProcessBeforeInstantiation()
+			//			BeanPostProcess : postProcessAfterInitialization()
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 			if (bean != null) {
 				return bean;
@@ -567,6 +572,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
+					// BeanPostProcess 后置处理  MergedBeanDefinitionPostProcessor ： postProcessMergedBeanDefinition
+					//(CommonAnnotationBeanPostProcessor,ApplicationListenerDetector )
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -599,10 +606,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 
 			//属性填充 (可能产生循环依赖)
+			//AutowiredAnnotationBeanPostProcessor 完成属性注入
+			//BeanPostProcess 后置处理  InstantiationAwareBeanPostProcessor : (postProcessProperties ,filterPropertyDescriptorsForDependencyCheck,postProcessPropertyValues)
+			//对 加了 @Autowired 和 @Value  @Inject 几个注解 的  字段和方法  的处理
 			populateBean(beanName, mbd, instanceWrapper);
 
 
 			//初始方法执行
+			// BeanPostProcess 后置处理 postProcessBeforeInitialization ，	postProcessAfterInitialization
 
 			//初始化前 ==================================================================
 			// 执行 加了 @PostConstruct 注解的方法
@@ -1180,10 +1191,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		Supplier<?> instanceSupplier = mbd.getInstanceSupplier();
+		//提供实例化 方式的 bd 会走这个方法
 		if (instanceSupplier != null) {
 			return obtainFromSupplier(instanceSupplier, beanName);
 		}
 
+		//@Bean 的bd 会走这个方法
 		if (mbd.getFactoryMethodName() != null) {
 			return instantiateUsingFactoryMethod(beanName, mbd, args);
 		}
@@ -1440,6 +1453,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				pvs = mbd.getPropertyValues();
 			}
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
+
+				//=====================================================
 				//AutowiredAnnotationBeanPostProcessor 完成属性注入
 				if (bp instanceof InstantiationAwareBeanPostProcessor) {
 					InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
@@ -1826,7 +1841,6 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		if (mbd == null || !mbd.isSynthetic()) {
 
 			// 初始化后
-
 			//1. 完成aop 代理
 			//如果循环依赖，则这对象已经被代理过来，这里就不会再次进行代理操作，返回原始对象
 			// AbstractAutoProxyCreator 的 postProcessAfterInitialization 进行代理处理

@@ -18,6 +18,8 @@ package org.springframework.beans.factory.config;
 
 import org.springframework.beans.BeansException;
 
+import java.util.List;
+
 /**
  * Allows for custom modification of an application context's bean definitions,
  * adapting the bean property values of the context's underlying bean factory.
@@ -37,6 +39,8 @@ import org.springframework.beans.BeansException;
  * If bean instance interaction is required, consider implementing
  * {@link BeanPostProcessor} instead.
  *
+ * bean工厂的 后置处理器
+ *
  * @author Juergen Hoeller
  * @since 06.07.2003
  * @see BeanPostProcessor
@@ -50,6 +54,16 @@ public interface BeanFactoryPostProcessor {
 	 * initialization. All bean definitions will have been loaded, but no beans
 	 * will have been instantiated yet. This allows for overriding or adding
 	 * properties even to eager-initializing beans.
+	 *
+	 * 在spring 环境基本初始化完后 更新spring 环境的内部 beanFactory 组件
+	 * 所有的 bd 将会被加载 ，但是 不去实例化，如果有需要 也可以实例化bean
+	 *
+	 * 在这里被调用
+	 * {@link org.springframework.context.support.AbstractApplicationContext#refresh()}
+	 * {@link org.springframework.context.support.AbstractApplicationContext#invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory)}
+	 * {@link org.springframework.context.support.PostProcessorRegistrationDelegate#invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory, List)}
+	 *
+	 *
 	 * @param beanFactory the bean factory used by the application context
 	 * @throws org.springframework.beans.BeansException in case of errors
 	 */

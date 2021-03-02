@@ -162,7 +162,7 @@ public interface BeanFactory {
 	 * @param name the name of the bean to retrieve
 	 * @param args arguments to use when creating a bean instance using explicit arguments
 	 * (only applied when creating a new instance as opposed to retrieving an existing one)
-	 * @return an instance of the bean
+	 * @return an instance of the beang
 	 * @throws NoSuchBeanDefinitionException if there is no such bean definition
 	 * @throws BeanDefinitionStoreException if arguments have been given but
 	 * the affected bean isn't a prototype

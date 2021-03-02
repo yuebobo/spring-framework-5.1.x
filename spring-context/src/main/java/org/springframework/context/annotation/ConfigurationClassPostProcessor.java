@@ -252,7 +252,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			processConfigBeanDefinitions((BeanDefinitionRegistry) beanFactory);
 		}
 
+		//	把 bd 属性 xxx.configurationClass 为 full 的bd  （@Configuration） 的 beanClass 设置 为 cglib 代理后 的 class 进行 加强处理
+	    // 主要处理 加了 @Bean 的方法 和 setBeanFactory（BeanFactory b） 方法
 		enhanceConfigurationClasses(beanFactory);
+
 		beanFactory.addBeanPostProcessor(new ImportAwareBeanPostProcessor(beanFactory));
 	}
 
@@ -340,7 +343,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			 *  通过 @ComponentScan @ComponentScans 直接扫描得到的结果 转成BeanDefinition 且注册到 BeanFactory 中
 			 *
 			 * 二.
-			 * 		1.通过 @Import 导入的
+			 * 	通过 @Import 导入的
 			 * 		1.符合规则的内部类 (isFullConfigurationCandidate || isLiteConfigurationCandidate)
 			 *     没有注册到 BeanFactory 而是 存到 parser.configurationClasses 属性里
 			 *
@@ -365,7 +368,13 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
 
-			//加载解析出来的结果 转成 beanDefinition 注册到 BeanFactory
+			/**
+			 * 加载解析出来的结果 转成 beanDefinition 注册到 BeanFactory
+			 * 1.处理 @Import导入的 {@link ConfigurationClass#isImported()} == true
+			 * 2.处理 @Bean 转换为 BeanDefinition 注册到 beanFactory 中
+			 * 3.处理通过 {@link ImportResource} 导入的资源
+			 * 4.执行 {@link Import} 导入的  {@link ImportBeanDefinitionRegistrar#registerBeanDefinitions(AnnotationMetadata, BeanDefinitionRegistry)}方法
+			 */
 			this.reader.loadBeanDefinitions(configClasses);
 
 			alreadyParsed.addAll(configClasses);
@@ -405,6 +414,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	}
 
 	/**
+	 * 把 xxx.configurationClass属性 为 full 的 bd 的 beanClass 属性 替换为 cglib 代理后 的 class
+	 *
+	 * 主要处理 加了 @Bean 的方法 和 setBeanFactory（BeanFactory b） 方法
+	 *
 	 * Post-processes a BeanFactory in search of Configuration class BeanDefinitions;
 	 * any candidates are then enhanced by a {@link ConfigurationClassEnhancer}.
 	 * Candidate status is determined by BeanDefinition attribute metadata.

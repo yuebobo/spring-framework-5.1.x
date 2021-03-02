@@ -523,7 +523,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
-			//把 ApplicationListenerDetector 添加到容器里
+			// 在容器里添加 BeanPostProcessor ： ApplicationListenerDetector ，ApplicationContextAwareProcessor;
 			prepareBeanFactory(beanFactory);
 
 			try {
@@ -531,13 +531,27 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
+				// ====================================== 执行bean工厂的后置处理器 =============================================================
+
 				// 1. 执行 BeanDefinitionRegistryPostProcessor  的 postProcessBeanDefinitionRegistry 方法
 				//         其中 ConfigurationClassPostProcessor  扫描，解析 符合的类，且生成 beanDefinition 注册到 beanFactory 中
-				// 2.执行 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
-				//			其中 ConfigurationClassPostProcessor 代理相关  CGLIB-enhanced
+				// 2. 执行 BeanDefinitionRegistryPostProcessor  的 postProcessBeanFactory 方法
+				//         	2.1其中 ConfigurationClassPostProcessor 把 bd 属性 xxx.configurationClass 为 full 的bd  （@Configuration）
+				//	          的 beanClass 设置 为 cglib 代理后 的 class 进行 加强处理
+				//          2.2 在容器里添加一个 BeanPostProcessor ： ImportAwareBeanPostProcessor
+
+				// 3.执行 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
+
+				// 执行 相应 PostProcess 方法前 会先创建对应的实例 通过 beanFactory.getBean(name, Class)
 				invokeBeanFactoryPostProcessors(beanFactory);
 
+
+				// ================= 注册 bean 的后置处理器 用于干预bean 的创建 ======================
 				// Register bean processors that intercept bean creation.
+
+				//  1. beanFactory 的 beanPostProcessors 属性里 添加一个 BeanPostProcessor ： BeanPostProcessorChecker
+				//  2. 从 beanFactory 的 beanDefinitionNames  里 获取出 所有 类型为 ： BeanPostProcessor name
+				//  实例化后 添加到 beanFactory 的 beanPostProcessors 属性里
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
@@ -553,9 +567,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 				// Check for listener beans and register them.
 				//1.注册事件监听器
-				//  并没有把实际的bean 进行注册，此时bean 的实例还未生成 只是把 实现了ApplicationListener
-				// 的 bean 的 name 加入到 事件管理器 的 defaultRetriever.applicationListenerBeans 里
-				//2. 把 需要提前发布的事件 进行发布处理
+				//  把 applicationListeners  里已经注册的监听器 装载到  applicationEventMulticaster.defaultRetriever.applicationListeners 里
+				//2. 把实现了ApplicationListener  的 bean 的 name 加入到 事件管理器 的 applicationEventMulticaster.defaultRetriever.applicationListenerBeans 里
+				//   并没有把实际的bean 进行注册，此时bean 的实例还未生成
+				//3. 把 需要提前发布的事件 进行发布处理
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.

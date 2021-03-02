@@ -20,6 +20,8 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.core.type.AnnotationMetadata;
 
+import java.util.Collection;
+
 /**
  * Interface to be implemented by types that register additional bean definitions when
  * processing @{@link Configuration} classes. Useful when operating at the bean definition
@@ -40,6 +42,12 @@ import org.springframework.core.type.AnnotationMetadata;
  * </ul>
  *
  * <p>See implementations and associated unit tests for usage examples.
+ *
+ * 实现了 {@link ImportSelector} 或者 {@link ImportBeanDefinitionRegistrar} 的类
+ *    无法通过 {@link Import} 注册到 Spring 容器中
+ *
+ *  在 {@link ConfigurationClassParser#processImports(ConfigurationClass, ConfigurationClassParser.SourceClass, Collection, boolean)} 处被处理
+ *  真正处理时 {this.reader.loadBeanDefinitions(configClasses)} 这行代码里
  *
  * @author Chris Beams
  * @since 3.1

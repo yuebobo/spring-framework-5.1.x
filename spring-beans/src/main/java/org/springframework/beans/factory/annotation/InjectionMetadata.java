@@ -51,6 +51,7 @@ public class InjectionMetadata {
 
 	private final Class<?> targetClass;
 
+	//对 加了 @Autowired 和 @Value  @Inject 几个注解 的  字段和方法  的集合
 	private final Collection<InjectedElement> injectedElements;
 
 	@Nullable
@@ -87,6 +88,8 @@ public class InjectionMetadata {
 				if (logger.isTraceEnabled()) {
 					logger.trace("Processing injected element of bean '" + beanName + "': " + element);
 				}
+				//对字段赋值，
+				//执行方法
 				element.inject(target, beanName, pvs);
 			}
 		}

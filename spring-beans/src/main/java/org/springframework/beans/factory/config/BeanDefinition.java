@@ -18,8 +18,11 @@ package org.springframework.beans.factory.config;
 
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.core.AttributeAccessor;
 import org.springframework.lang.Nullable;
+
+import java.util.Map;
 
 /**
  * A BeanDefinition describes a bean instance, which has property values,
@@ -89,6 +92,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 
 	/**
 	 * Return the name of the parent definition of this bean definition, if any.
+	 * {@link org.springframework.beans.factory.support.AbstractBeanFactory#getMergedBeanDefinition(String, BeanDefinition, BeanDefinition)}
 	 */
 	@Nullable
 	String getParentName();
@@ -136,23 +140,31 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * Set whether this bean should be lazily initialized.
 	 * <p>If {@code false}, the bean will get instantiated on startup by bean
 	 * factories that perform eager initialization of singletons.
+	 * {@link org.springframework.context.annotation.AnnotationConfigUtils#processCommonDefinitionAnnotations(AnnotatedBeanDefinition)}
 	 */
 	void setLazyInit(boolean lazyInit);
 
 	/**
 	 * Return whether this bean should be lazily initialized, i.e. not
 	 * eagerly instantiated on startup. Only applicable to a singleton bean.
+	 * Spring 容器在 实例化一个 单例 bean 的时候
+	 * 如果 这个bean 加了@Lazy 则不会实例化，在用到的时候才实例化
+	 * 如果 其他Bean 加了 @DependsOn 依赖于当前bean
+	 * 或者 其他bean 需要注入 当前bean 这个时候将会被创建
 	 */
 	boolean isLazyInit();
 
 	/**
 	 * Set the names of the beans that this bean depends on being initialized.
 	 * The bean factory will guarantee that these beans get initialized first.
+	 * {@link org.springframework.context.annotation.AnnotationConfigUtils#processCommonDefinitionAnnotations(AnnotatedBeanDefinition)}
 	 */
 	void setDependsOn(@Nullable String... dependsOn);
 
 	/**
 	 * Return the bean names that this bean depends on.
+	 * {@link org.springframework.beans.factory.support.AbstractBeanFactory#doGetBean(String, Class, Object[], boolean)}
+	 * 在一个 Bean 上加 @DependsOn（v） 则Bean 在实例化前 需要 v 先创建
 	 */
 	@Nullable
 	String[] getDependsOn();
@@ -180,6 +192,14 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 
 	/**
 	 * Return whether this bean is a primary autowire candidate.
+	 * {@link org.springframework.context.annotation.AnnotationConfigUtils#processCommonDefinitionAnnotations(AnnotatedBeanDefinition)} 设置
+	 * {@link org.springframework.beans.factory.support.DefaultListableBeanFactory#determinePrimaryCandidate(Map, Class)}
+	 *
+	 * 在 属性性注入 或者构造注入时
+	 * 如果找到 超过一个 符合条件的 Bean 则会报异常
+	 * 如果 在其中一个 Bean 上加上注解 {@link org.springframework.context.annotation.Primary}
+	 * 则被注解的 bean 将作为首选
+	 *
 	 */
 	boolean isPrimary();
 
@@ -272,6 +292,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * Set the role hint for this {@code BeanDefinition}. The role hint
 	 * provides the frameworks as well as tools with an indication of
 	 * the role and importance of a particular {@code BeanDefinition}.
+	 * {@link org.springframework.context.annotation.AnnotationConfigUtils#processCommonDefinitionAnnotations(AnnotatedBeanDefinition)}
 	 * @since 5.1
 	 * @see #ROLE_APPLICATION
 	 * @see #ROLE_SUPPORT
@@ -291,6 +312,7 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 
 	/**
 	 * Set a human-readable description of this bean definition.
+	 * {@link org.springframework.context.annotation.AnnotationConfigUtils#processCommonDefinitionAnnotations(AnnotatedBeanDefinition)}
 	 * @since 5.1
 	 */
 	void setDescription(@Nullable String description);

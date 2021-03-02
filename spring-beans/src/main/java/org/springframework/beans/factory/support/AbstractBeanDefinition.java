@@ -26,9 +26,11 @@ import java.util.function.Supplier;
 
 import org.springframework.beans.BeanMetadataAttributeAccessor;
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.io.DescriptiveResource;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
@@ -137,6 +139,12 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	public static final String INFER_METHOD = "(inferred)";
 
 
+	/**
+	 * {@link AbstractBeanFactory#isFactoryBean(String, RootBeanDefinition)}
+	 * {@link AbstractBeanFactory#isTypeMatch(String, ResolvableType)}
+	 * 等方法会 更新这个值
+	 * {@link #resolveBeanClass(ClassLoader)}
+	 */
 	@Nullable
 	private volatile Object beanClass;
 
@@ -160,6 +168,10 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 	private final Map<String, AutowireCandidateQualifier> qualifiers = new LinkedHashMap<>();
 
+	/**
+	 * 实例化bean 的时候 可以从这个地方获取
+	 * {@link AbstractAutowireCapableBeanFactory#createBeanInstance(String, RootBeanDefinition, Object[])}
+	 */
 	@Nullable
 	private Supplier<?> instanceSupplier;
 
@@ -427,6 +439,10 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
+	 * {@link AbstractBeanFactory#isFactoryBean(String, RootBeanDefinition)}
+	 * {@link AbstractBeanFactory#isTypeMatch(String, ResolvableType)}
+	 * 等方法会 更新这个值
+	 *
 	 * Determine the class of the wrapped bean, resolving it from a
 	 * specified class name if necessary. Will also reload a specified
 	 * Class from its name when called with the bean class already resolved.

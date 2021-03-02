@@ -1,5 +1,6 @@
 package ioc.init.annotation;
 
+import ioc.init.annotation.imports.MyImportSelector;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -21,7 +22,10 @@ public class AnnotationConfigStart {
 		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext();
 		ac.register(At.class);
 		ac.refresh();
-//		At bean = ac.getBean(At.class);
-//		bean.after();
+		System.out.println("2222");
+		At bean1 = ac.getBean(At.class);
+		Bbean bbean = bean1.bbean();
+		System.out.println("3333");
+
 	}
 }

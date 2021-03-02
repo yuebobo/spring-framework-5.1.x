@@ -33,7 +33,7 @@ import org.springframework.util.SerializationTestUtils;
 import static org.junit.Assert.*;
 
 /**
- * Integration tests for LocalContainerEntityManagerFactoryBean.
+ * Integration tests for LocalContainerEntityManager.
  * Uses an in-memory database.
  *
  * @author Rod Johnson

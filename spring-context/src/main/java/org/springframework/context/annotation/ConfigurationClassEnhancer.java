@@ -346,6 +346,7 @@ class ConfigurationClassEnhancer {
 				}
 			}
 
+			//@Bean 方法第一次调用为true 后边为false
 			if (isCurrentlyInvokedFactoryMethod(beanMethod)) {
 				// The factory is calling the bean method in order to instantiate and register the bean
 				// (i.e. via a getBean() call) -> invoke the super implementation of the method to actually

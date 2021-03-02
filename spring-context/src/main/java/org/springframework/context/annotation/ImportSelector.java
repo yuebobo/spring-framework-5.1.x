@@ -18,6 +18,8 @@ package org.springframework.context.annotation;
 
 import org.springframework.core.type.AnnotationMetadata;
 
+import java.util.Collection;
+
 /**
  * Interface to be implemented by types that determine which @{@link Configuration}
  * class(es) should be imported based on a given selection criteria, usually one or
@@ -37,6 +39,12 @@ import org.springframework.core.type.AnnotationMetadata;
  * as regular {@code @Import} annotations, however, it is also possible to defer
  * selection of imports until all {@code @Configuration} classes have been processed
  * (see {@link DeferredImportSelector} for details).
+ *
+ *实现了 {@link ImportSelector} 或者 {@link ImportBeanDefinitionRegistrar} 的类
+ *  无法通过 {@link Import} 注册到 Spring 容器中
+ *
+ *  在 {@link ConfigurationClassParser#processImports(ConfigurationClass, ConfigurationClassParser.SourceClass, Collection, boolean)} 处被处理
+ *  *  真正处理时 {this.deferredImportSelectorHandler.process()} 这行代码里
  *
  * @author Chris Beams
  * @since 3.1

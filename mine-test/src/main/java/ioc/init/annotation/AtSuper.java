@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
  * @author : zyb
  * 时间 : 2020/7/6 22:11.
  */
-@Component
+//@Component
 public class AtSuper {
 
 }

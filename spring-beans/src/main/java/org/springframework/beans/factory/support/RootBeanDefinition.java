@@ -67,6 +67,11 @@ public class RootBeanDefinition extends AbstractBeanDefinition {
 	@Nullable
 	volatile ResolvableType targetType;
 
+	/**
+	 * {@link AbstractBeanFactory#isFactoryBean(String, RootBeanDefinition)}
+	 * {@link AbstractBeanFactory#isTypeMatch(String, ResolvableType)}
+	 * {@link AbstractAutowireCapableBeanFactory#determineTargetType(String, RootBeanDefinition, Class[])}
+	 * 等方法会 更新这个值	 */
 	/** Package-visible field for caching the determined Class of a given bean definition. */
 	@Nullable
 	volatile Class<?> resolvedTargetType;

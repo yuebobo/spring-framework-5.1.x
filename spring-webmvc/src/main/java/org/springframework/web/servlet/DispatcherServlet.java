@@ -503,8 +503,13 @@ public class DispatcherServlet extends FrameworkServlet {
 		initMultipartResolver(context);
 		initLocaleResolver(context);
 		initThemeResolver(context);
+
+		//初始化 映射器集合
 		initHandlerMappings(context);
+
+		//初始化 适配器集合
 		initHandlerAdapters(context);
+
 		initHandlerExceptionResolvers(context);
 		initRequestToViewNameTranslator(context);
 		initViewResolvers(context);
@@ -593,8 +598,11 @@ public class DispatcherServlet extends FrameworkServlet {
 	private void initHandlerMappings(ApplicationContext context) {
 		this.handlerMappings = null;
 
+		//判断 探测所有的 HandlerMapping 的bean
+		// 还是 只是 名字为 handlerMapping 的 bean
 		if (this.detectAllHandlerMappings) {
 			// Find all HandlerMappings in the ApplicationContext, including ancestor contexts.
+			// 探寻 所有的 HandlerMapping 在容器中 包括祖先容器
 			Map<String, HandlerMapping> matchingBeans =
 					BeanFactoryUtils.beansOfTypeIncludingAncestors(context, HandlerMapping.class, true, false);
 			if (!matchingBeans.isEmpty()) {
@@ -615,6 +623,10 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		// Ensure we have at least one HandlerMapping, by registering
 		// a default HandlerMapping if no other mappings are found.
+		//如果 容器里没有 映射器 则后期默认的 （根据配置文件 DispatcherServlet.properties）
+		//	org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping,
+		//	org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
+		//这个两个在创建bean 的时候也会去解析相应能处理的Controller 并且添加到自己的映射器中
 		if (this.handlerMappings == null) {
 			this.handlerMappings = getDefaultStrategies(context, HandlerMapping.class);
 			if (logger.isTraceEnabled()) {
@@ -654,6 +666,10 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		// Ensure we have at least some HandlerAdapters, by registering
 		// default HandlerAdapters if no other adapters are found.
+		// 默认有 三个
+		// org.springframework.web.servlet.mvc.HttpRequestHandlerAdapter,\
+		//	org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter,\
+		//	org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
 		if (this.handlerAdapters == null) {
 			this.handlerAdapters = getDefaultStrategies(context, HandlerAdapter.class);
 			if (logger.isTraceEnabled()) {
@@ -859,6 +875,12 @@ public class DispatcherServlet extends FrameworkServlet {
 	@SuppressWarnings("unchecked")
 	protected <T> List<T> getDefaultStrategies(ApplicationContext context, Class<T> strategyInterface) {
 		String key = strategyInterface.getName();
+		/**
+		 * 来自于配置文件{@link DEFAULT_STRATEGIES_PATH}
+		 *
+		 * org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping,\
+		 * 	org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
+		 */
 		String value = defaultStrategies.getProperty(key);
 		if (value != null) {
 			String[] classNames = StringUtils.commaDelimitedListToStringArray(value);
@@ -1012,14 +1034,15 @@ public class DispatcherServlet extends FrameworkServlet {
 				processedRequest = checkMultipart(request);
 				multipartRequestParsed = (processedRequest != request);
 
-				// Determine handler for the current request.
+				// Determine handler for the current request. 获取 处理器执行链
 				mappedHandler = getHandler(processedRequest);
 				if (mappedHandler == null) {
+					//返回404
 					noHandlerFound(processedRequest, response);
 					return;
 				}
 
-				// Determine handler adapter for the current request.
+				// Determine handler adapter for the current request. 获取适配器
 				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
 
 				// Process last-modified header, if supported by the handler.
@@ -1032,11 +1055,12 @@ public class DispatcherServlet extends FrameworkServlet {
 					}
 				}
 
+				//执行前 拦截判断
 				if (!mappedHandler.applyPreHandle(processedRequest, response)) {
 					return;
 				}
 
-				// Actually invoke the handler.
+				// Actually invoke the handler. 处理请求
 				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
 
 				if (asyncManager.isConcurrentHandlingStarted()) {
@@ -1044,6 +1068,8 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				applyDefaultViewName(processedRequest, mv);
+
+
 				mappedHandler.applyPostHandle(processedRequest, response, mv);
 			}
 			catch (Exception ex) {
@@ -1221,6 +1247,8 @@ public class DispatcherServlet extends FrameworkServlet {
 	}
 
 	/**
+	 * 从 handlerMappings 中寻找第一个可以处理 请求的 处理器映射
+	 *
 	 * Return the HandlerExecutionChain for this request.
 	 * <p>Tries all handler mappings in order.
 	 * @param request current HTTP request

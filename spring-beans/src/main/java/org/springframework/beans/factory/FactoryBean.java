@@ -59,6 +59,10 @@ import org.springframework.lang.Nullable;
 public interface FactoryBean<T> {
 
 	/**
+	 *
+	 * 获取出来的bean 会缓存到
+	 * {@link org.springframework.beans.factory.support.FactoryBeanRegistrySupport.factoryBeanObjectCache 中}
+	 *
 	 * Return an instance (possibly shared or independent) of the object
 	 * managed by this factory.
 	 * <p>As with a {@link BeanFactory}, this allows support for both the

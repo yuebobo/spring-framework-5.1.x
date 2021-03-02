@@ -185,6 +185,13 @@ class ConfigurationClassParser {
 			}
 		}
 
+		/**
+		 * 处理 {@link Import } 导入的 类型为 {@link DeferredImportSelector} 的类
+		 * （延迟处理）
+		 * 会执行 {@link DeferredImportSelector#selectImports(AnnotationMetadata)} 获取出 String[]
+		 * 再把 Stirng[] 遍历 执行 {@link #processImports}
+		 *
+		 */
 		this.deferredImportSelectorHandler.process();
 	}
 
@@ -256,6 +263,7 @@ class ConfigurationClassParser {
 		SourceClass sourceClass = asSourceClass(configClass);
 		do {
 			//如果有父类则会有返回
+			//如果父类 没加什么注解，则不会加到 beanFactory 中
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass);
 		}
 		while (sourceClass != null);
@@ -343,6 +351,8 @@ class ConfigurationClassParser {
 			}
 		}
 
+
+		//对于 包含 @Bean 方法的 类 如果加了@Configuration 则 主类会被代理 否则不会
 		// Process individual @Bean methods
 		Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(sourceClass);
 		for (MethodMetadata methodMetadata : beanMethods) {
@@ -584,7 +594,7 @@ class ConfigurationClassParser {
 	 * @param configClass
 	 * @param currentSourceClass
 	 * @param importCandidates
-	 * @param checkForCircularImports
+	 * @param checkForCircularImports 检查循环依赖
 	 */
 	private void processImports(ConfigurationClass configClass, SourceClass currentSourceClass,
 			Collection<SourceClass> importCandidates, boolean checkForCircularImports) {
@@ -600,27 +610,44 @@ class ConfigurationClassParser {
 			this.importStack.push(configClass);
 			try {
 				for (SourceClass candidate : importCandidates) {
+
+					//解析实现了 ImportSelector 的类型
 					if (candidate.isAssignable(ImportSelector.class)) {
 						// Candidate class is an ImportSelector -> delegate to it to determine imports
 						Class<?> candidateClass = candidate.loadClass();
+						//实例化
 						ImportSelector selector = BeanUtils.instantiateClass(candidateClass, ImportSelector.class);
+
+						//如果实现了 Aware 接口  需要先执行 aware 里的方法
 						ParserStrategyUtils.invokeAwareMethods(
 								selector, this.environment, this.resourceLoader, this.registry);
+
+						//如果实现了 DeferredImportSelector 还需做延迟导入
 						if (selector instanceof DeferredImportSelector) {
+
+							/**
+							 * 把 selector 添加 到 deferredImportSelectors 集合里
+							 * 会在 {@link ConfigurationClassParser#parse(Set)} 方法的最后进行处理
+							 */
 							this.deferredImportSelectorHandler.handle(configClass, (DeferredImportSelector) selector);
 						}
 						else {
+							//执行 selectImports 方法
 							String[] importClassNames = selector.selectImports(currentSourceClass.getMetadata());
 							Collection<SourceClass> importSourceClasses = asSourceClasses(importClassNames);
+							//递归处理
 							processImports(configClass, currentSourceClass, importSourceClasses, false);
 						}
 					}
+
+					//解析实现了 ImportBeanDefinitionRegistrar 的类型
 					else if (candidate.isAssignable(ImportBeanDefinitionRegistrar.class)) {
 						// Candidate class is an ImportBeanDefinitionRegistrar ->
 						// delegate to it to register additional bean definitions
 						Class<?> candidateClass = candidate.loadClass();
 						ImportBeanDefinitionRegistrar registrar =
 								BeanUtils.instantiateClass(candidateClass, ImportBeanDefinitionRegistrar.class);
+						//如果实现了 Aware 接口  需要先执行 aware 里的方法
 						ParserStrategyUtils.invokeAwareMethods(
 								registrar, this.environment, this.resourceLoader, this.registry);
 						configClass.addImportBeanDefinitionRegistrar(registrar, currentSourceClass.getMetadata());

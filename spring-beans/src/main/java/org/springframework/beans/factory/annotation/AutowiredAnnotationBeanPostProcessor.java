@@ -120,6 +120,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
+	// 初始两个值 @Autowired  @Value @Inject
 	private final Set<Class<? extends Annotation>> autowiredAnnotationTypes = new LinkedHashSet<>(4);
 
 	private String requiredParameterName = "required";
@@ -228,7 +229,10 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 
 	@Override
 	public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
+		//对 加了 @Autowired 和 @Value  @Inject 几个注解 的  字段和方法  封装成 一个  InjectionMetadata
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, beanType, null);
+
+		//
 		metadata.checkConfigMembers(beanDefinition);
 	}
 
@@ -385,8 +389,10 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 
 	@Override
 	public PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName) {
+		//获取出加了 @Autowired 和 @Value  @Inject 几个注解 的  字段和方法  元素
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
 		try {
+			// 对相应的字段进行赋值，或者执行方法
 			metadata.inject(bean, beanName, pvs);
 		}
 		catch (BeanCreationException ex) {
@@ -440,6 +446,8 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 					if (metadata != null) {
 						metadata.clear(pvs);
 					}
+					//根据 class 获取 metadata
+					//对 加了 @Autowired 和 @Value  @Inject 几个注解 的  字段和方法    的处理
 					metadata = buildAutowiringMetadata(clazz);
 					this.injectionMetadataCache.put(cacheKey, metadata);
 				}
@@ -453,10 +461,18 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		Class<?> targetClass = clazz;
 
 		do {
+
+			// currElements 可以包含 字段，方法
 			final List<InjectionMetadata.InjectedElement> currElements = new ArrayList<>();
 
+
+			//对 加了 @Autowired 和 @Value  @Inject 几个注解 的 字段的处理
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
+
+				//======================================
 				AnnotationAttributes ann = findAutowiredAnnotation(field);
+				//======================================
+
 				if (ann != null) {
 					if (Modifier.isStatic(field.getModifiers())) {
 						if (logger.isInfoEnabled()) {
@@ -469,19 +485,26 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 				}
 			});
 
+			//对 加了 @Autowired 和 @Value  @Inject 几个注解 的 方法的处理
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
 				Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(method);
 				if (!BridgeMethodResolver.isVisibilityBridgeMethodPair(method, bridgedMethod)) {
 					return;
 				}
+
+				//======================================
 				AnnotationAttributes ann = findAutowiredAnnotation(bridgedMethod);
+				//======================================
+
 				if (ann != null && method.equals(ClassUtils.getMostSpecificMethod(method, clazz))) {
+					//不支持 静态方法
 					if (Modifier.isStatic(method.getModifiers())) {
 						if (logger.isInfoEnabled()) {
 							logger.info("Autowired annotation is not supported on static methods: " + method);
 						}
 						return;
 					}
+					//方法没有参数的提示
 					if (method.getParameterCount() == 0) {
 						if (logger.isInfoEnabled()) {
 							logger.info("Autowired annotation should only be used on methods with parameters: " +
@@ -505,7 +528,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 	@Nullable
 	private AnnotationAttributes findAutowiredAnnotation(AccessibleObject ao) {
 		if (ao.getAnnotations().length > 0) {  // autowiring annotations have to be local
-			//autowiredAnnotationTypes  有 @Autowired 和 @Value 这两个注解
+			//autowiredAnnotationTypes  有 @Autowired 和 @Value  @@Inject 几个注解
 			// 构造方法上不能加 @Value
 			// 判断有没有 加@Autowired 注解 如果有 则对应的 返回对应的注解的 值 （required ： true (false)）
 			for (Class<? extends Annotation> type : this.autowiredAnnotationTypes) {
@@ -609,6 +632,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 				Assert.state(beanFactory != null, "No BeanFactory available");
 				TypeConverter typeConverter = beanFactory.getTypeConverter();
 				try {
+					//获取出值 用于字段赋值
 					value = beanFactory.resolveDependency(desc, beanName, autowiredBeanNames, typeConverter);
 				}
 				catch (BeansException ex) {

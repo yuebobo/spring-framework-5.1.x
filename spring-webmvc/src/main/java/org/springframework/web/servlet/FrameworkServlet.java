@@ -43,6 +43,7 @@ import org.springframework.context.event.SourceFilteringListener;
 import org.springframework.context.i18n.LocaleContext;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.i18n.SimpleLocaleContext;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -527,7 +528,11 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		long startTime = System.currentTimeMillis();
 
 		try {
+			//1.往容器里添加监听器
+			//2.刷新容器，
+			//3.初始化(刷新) Servlet
 			this.webApplicationContext = initWebApplicationContext();
+
 			initFrameworkServlet();
 		}
 		catch (ServletException | RuntimeException ex) {
@@ -562,6 +567,9 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 				WebApplicationContextUtils.getWebApplicationContext(getServletContext());
 		WebApplicationContext wac = null;
 
+		/**
+		 * {@link DispatcherServlet#DispatcherServlet(WebApplicationContext)}  实例化时传入到
+		 */
 		if (this.webApplicationContext != null) {
 			// A context instance was injected at construction time -> use it
 			wac = this.webApplicationContext;
@@ -687,6 +695,31 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		wac.setServletContext(getServletContext());
 		wac.setServletConfig(getServletConfig());
 		wac.setNamespace(getNamespace());
+		/**
+		 * 添加一个监听器到 Spring 容器里
+		 * 在 spring 容器刷新 后 {@link AbstractApplicationContext#finishRefresh()} 方法会被调用
+		 * 会触发 这里添加的监听器 会触发 {@link ContextRefreshListener#onApplicationEvent(ContextRefreshedEvent)}
+		 * 这个方法会 触发 {@link DispatcherServlet#onRefresh(ApplicationContext)} 方法
+		 * 此方法里 一波操作
+		 * 		initMultipartResolver(context);
+		 *
+		 * 		initLocaleResolver(context);
+		 *
+		 * 		initThemeResolver(context);
+		 *
+		 * 		initHandlerMappings(context);
+		 *
+		 * 		initHandlerAdapters(context);
+		 *
+		 * 		initHandlerExceptionResolvers(context);
+		 *
+		 * 		initRequestToViewNameTranslator(context);
+		 *
+		 * 		initViewResolvers(context);
+		 *
+		 * 		initFlashMapManager(context);
+		 *
+		 */
 		wac.addApplicationListener(new SourceFilteringListener(wac, new ContextRefreshListener()));
 
 		// The wac environment's #initPropertySources will be called in any case when the context
@@ -698,7 +731,15 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		}
 
 		postProcessWebApplicationContext(wac);
+
+		/**
+		 * 执行 {@link ApplicationContextInitializer#initialize(ConfigurableApplicationContext)} 方法
+		 */
 		applyInitializers(wac);
+
+		/**
+		 * 刷新容器
+		 */
 		wac.refresh();
 	}
 

@@ -52,12 +52,21 @@ final class PostProcessorRegistrationDelegate {
 	}
 
 
+	/**
+	 * bean 工厂的后置处理器 处理调用
+	 * 1.invokeBeanDefinitionRegistryPostProcessors
+	 * 2.invokeBeanFactoryPostProcessors
+	 *
+	 * @param beanFactory
+	 * @param beanFactoryPostProcessors
+	 */
 	public static void invokeBeanFactoryPostProcessors(
 			ConfigurableListableBeanFactory beanFactory, List<BeanFactoryPostProcessor> beanFactoryPostProcessors) {
 
 		// Invoke BeanDefinitionRegistryPostProcessors first, if any.
 		Set<String> processedBeans = new HashSet<>();
 
+		// 对 BeanDefinitionRegistryPostProcessor 的处理
 		if (beanFactory instanceof BeanDefinitionRegistry) {
 			BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
 			List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
@@ -93,6 +102,7 @@ final class PostProcessorRegistrationDelegate {
 			/**
 			 * currentRegistryProcessors 里有
 			 * {@link org.springframework.context.annotation.ConfigurationClassPostProcessor}
+			 * 执行
 			 */
 			sortPostProcessors(currentRegistryProcessors, beanFactory);
 			registryProcessors.addAll(currentRegistryProcessors);
@@ -140,6 +150,7 @@ final class PostProcessorRegistrationDelegate {
 			invokeBeanFactoryPostProcessors(beanFactoryPostProcessors, beanFactory);
 		}
 
+		//对 BeanFactoryPostProcessor 的处理
 		// Do not initialize FactoryBeans here: We need to leave all regular beans
 		// uninitialized to let the bean factory post-processors apply to them!
 		String[] postProcessorNames =

@@ -125,6 +125,7 @@ class ConfigurationClassBeanDefinitionReader {
 	private void loadBeanDefinitionsForConfigurationClass(
 			ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {
 
+		//判断是否要跳过
 		if (trackedConditionEvaluator.shouldSkip(configClass)) {
 			String beanName = configClass.getBeanName();
 			if (StringUtils.hasLength(beanName) && this.registry.containsBeanDefinition(beanName)) {
@@ -134,14 +135,26 @@ class ConfigurationClassBeanDefinitionReader {
 			return;
 		}
 
+		//内部类，@Import导入的 isImport() == true
 		if (configClass.isImported()) {
+			// 创建 beanDefinition 注册到 beanFactory中
 			registerBeanDefinitionForImportedConfigurationClass(configClass);
 		}
+
+
+		//处理@Bean  创建 beanDefinition 注册到 beanFactory中
 		for (BeanMethod beanMethod : configClass.getBeanMethods()) {
 			loadBeanDefinitionsForBeanMethod(beanMethod);
 		}
 
+		/**
+		 * 处理通过 {@link ImportResource} 导入的资源
+		 */
 		loadBeanDefinitionsFromImportedResources(configClass.getImportedResources());
+
+		/**
+		 * 处理通过 {@link Import} 导入的 实现了 {@link ImportBeanDefinitionRegistrar} 的类
+		 */
 		loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
 	}
 
@@ -155,6 +168,8 @@ class ConfigurationClassBeanDefinitionReader {
 		ScopeMetadata scopeMetadata = scopeMetadataResolver.resolveScopeMetadata(configBeanDef);
 		configBeanDef.setScope(scopeMetadata.getScopeName());
 		String configBeanName = this.importBeanNameGenerator.generateBeanName(configBeanDef, this.registry);
+
+		//处理 对bd 设置   @Lazy @Primary  @DependsOn  @Role  @Description 对应的属性
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(configBeanDef, metadata);
 
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(configBeanDef, configBeanName);
